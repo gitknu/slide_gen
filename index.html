@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор PDF</title>
+    <!-- External Libraries for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --oswald-font: 'Oswald', sans-serif;
+            --montserrat-font: 'Montserrat', sans-serif;
+            --blue-fields-font-size: 14px;
+            --white-fields-font-size: 13px;
+            --text-color: black;
+        }
+
+        body {
+            font-family: var(--montserrat-font);
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 20px;
+        }
+        
+        #controls {
+            margin-bottom: 20px;
+        }
+
+        #generate-pdf-btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color: 0.3s;
+        }
+
+        #generate-pdf-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #pdf-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-image: url('https://i.ibb.co/YFRgt7mz/3-1-single-page-template.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Common styles for all input/textarea/select fields */
+        .input-field {
+            position: absolute;
+            background-color: transparent;
+            border: 1px dashed rgba(0, 123, 255, 0.5);
+            padding: 2px 5px;
+            color: var(--text-color);
+            box-sizing: border-box;
+            overflow: hidden;
+            resize: none;
+            line-height: 1.1; /* Reduced line spacing */
+        }
+        
+        .input-field:focus-within {
+            outline: none;
+            border: 1px solid #007bff;
+        }
+        
+        /* Specific fonts for left and right columns */
+        .blue-field {
+            font-family: var(--oswald-font);
+            font-size: var(--blue-fields-font-size);
+        }
+
+        .white-field {
+            font-family: var(--montserrat-font);
+            font-size: var(--white-fields-font-size);
+        }
+
+        /* --- STYLES FOR BOLD LABELS --- */
+        .rich-text-field {
+            cursor: text; /* Show text cursor for the whole container */
+        }
+
+        .rich-text-field .field-label {
+            font-weight: 700; /* BOLD */
+        }
+
+        .rich-text-field .user-input {
+            font-weight: 400; /* REGULAR */
+            outline: none;
+            display: inline; /* Allows text to wrap naturally after the label */
+        }
+
+        /* Specific rule for core-team to start on a new line */
+        #core-team .user-input {
+            display: block;
+        }
+
+        /* Placeholder for contenteditable div */
+        .user-input:empty::before {
+            content: attr(data-placeholder);
+            color: #6c757d; /* Placeholder color */
+            cursor: text;
+        }
+
+        /* --- Input Field Positioning (FINAL LEFT COLUMN ADJUSTMENT) --- */
+        
+        /* Left Column (Blue Background) */
+        #meta, #indicators, #impact, #potential {
+            padding: 5px 8px; /* Adjusted padding for new structure */
+            background-color: #cfe2f3;
+            border: 1px dashed black;
+        }
+        
+        /* --- ADJUSTED DIMENSIONS --- */
+        #meta {
+            top: 13.5%;
+            left: 4.6%;      /* Shifted left by 10px */
+            width: 42.0%;    /* Increased width by 10px */
+            height: 18.4%;   /* Increased height by 10px */
+        }
+
+        #indicators {
+            top: 32.3%;      /* Repositioned for stitching + 3px gap */
+            left: 4.6%;      /* Shifted left by 10px */
+            width: 42.0%;    /* Increased width by 10px */
+            height: 18.4%;   /* Increased height by 10px */
+        }
+
+        #impact {
+            top: 51.1%;      /* Repositioned for stitching + 3px gap */
+            left: 4.6%;      /* Shifted left by 10px */
+            width: 42.0%;    /* Increased width by 10px */
+            height: 18.4%;   /* Increased height by 10px */
+        }
+
+        #potential {
+            top: 69.9%;      /* Repositioned for stitching + 3px gap */
+            left: 4.6%;      /* Shifted left by 10px */
+            width: 42.0%;    /* Increased width by 10px */
+            height: 18.4%;   /* Increased height by 10px */
+        }
+
+        /* Right Column (White Background) */
+        
+        /* --- NEW HEADERS FOR RIGHT COLUMN --- */
+        .right-column-header {
+            position: absolute;
+            font-family: var(--montserrat-font);
+            font-weight: 700; /* Bold */
+            font-size: var(--white-fields-font-size);
+            color: var(--text-color);
+        }
+
+        #header-subdivision { top: 12.8%; left: 47.0%; }
+        #header-category { top: 12.8%; left: 58.3%; }
+        #header-type { top: 12.8%; left: 69.3%; }
+        #header-defense { top: 12.8%; left: 78.4%; }
+        #header-score { top: 12.8%; left: 87.7%; }
+        #header-project-title { top: 20.1%; left: 47.0%; }
+        #header-project-leader { top: 32.7%; left: 47.0%; } /* Raised */
+
+
+        /* --- ADJUSTED POSITIONS FOR RIGHT COLUMN FIELDS --- */
+        #subdivision {
+            top: 16%;
+            left: 47.0%;
+            width: 10.8%;
+            height: 4%;
+        }
+
+        #category, #type, #defense {
+            -webkit-appearance: none; /* Removes default chrome and safari style */
+            -moz-appearance: none; /* Removes default style for firefox */
+            appearance: none;
+            padding-left: 8px; /* Adjust padding for appearance */
+        }
+        
+        #category {
+            top: 16%;
+            left: 58.3%;
+            width: 10.5%;
+            height: 4%;
+        }
+
+        #type {
+            top: 16%;
+            left: 69.3%;
+            width: 8.5%;
+            height: 4%;
+        }
+        
+        #defense {
+            top: 16%;
+            left: 78.4%;
+            width: 7%;
+            height: 4%;
+        }
+
+        #score {
+            top: 16%;
+            left: 87.7%;
+            width: 4.5%;
+            height: 4%;
+        }
+
+        #project-title {
+            top: 23.2%;
+            left: 47.0%;
+            width: 49.3%;
+            height: 9.2%;
+        }
+
+        #project-leader {
+            top: 35.9%;
+            left: 47.0%;
+            width: 49.3%;
+            height: 3%;
+        }
+        
+        #priority-direction {
+            top: 40.2%;
+            left: 47.0%;
+            width: 49.3%;
+            height: 5.8%;
+        }
+        
+        #contest-direction {
+            top: 47.5%;
+            left: 47.0%;
+            width: 49.3%;
+            height: 5.8%;
+        }
+
+        #date-from-text, #date-to-text {
+            position: absolute;
+            font-family: var(--montserrat-font);
+            font-size: var(--white-fields-font-size);
+            top: 55.5%;
+            height: 3%;
+            display: flex;
+            align-items: center;
+        }
+
+        #date-from-text {
+            left: 47.0%;
+        }
+
+        #date-to-text {
+            left: 57.5%;
+        }
+        
+        #start-date {
+            top: 55.5%;
+            left: 48.8%;
+            width: 8.5%;  
+            height: 3%;
+        }
+        
+        #end-date {
+            top: 55.5%;
+            left: 59.0%;
+            width: 8.5%;  
+            height: 3%;
+        }
+
+        #funding-amount {
+            top: 60.5%;
+            left: 47.0%;
+            width: 12%;
+            height: 3%;
+        }
+
+        #funding-currency-text {
+            position: absolute;
+            font-family: var(--montserrat-font);
+            font-size: var(--white-fields-font-size);
+            top: 60.5%;
+            left: 59.2%;
+            height: 3%;
+            display: flex;
+            align-items: center;
+        }
+
+        #core-team {
+            top: 66.3%;
+            left: 47.0%;
+            width: 49.3%;
+            height: 22.0%;
+            background-color: #fce5cd;
+            border: 1px dashed black;
+            padding: 5px 8px;
+        }
+        
+        .no-print .input-field {
+            border: none;
+        }
+
+        /* For regular input and textarea elements, hide placeholder on focus */
+        input:focus::placeholder,
+        textarea:focus::placeholder {
+            color: transparent;
+        }
+
+        /* Specific styles for date inputs to blend them in */
+        #start-date, #end-date {
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0.6;
+            cursor: pointer;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Генератор PDF для проєктної пропозиції</h1>
+    <div id="controls">
+        <button id="generate-pdf-btn">Згенерувати PDF</button>
+    </div>
+
+    <div id="pdf-container">
+        <!-- Left Side -->
+        <div id="meta" class="input-field blue-field rich-text-field">
+            <span class="field-label">Мета, завдання: </span><div class="user-input" contenteditable="true" data-placeholder="..."></div>
+        </div>
+        <div id="indicators" class="input-field blue-field rich-text-field">
+            <span class="field-label">Індикатори: </span><div class="user-input" contenteditable="true" data-placeholder="..."></div>
+        </div>
+        <div id="impact" class="input-field blue-field rich-text-field">
+            <span class="field-label">Вплив: </span><div class="user-input" contenteditable="true" data-placeholder="..."></div>
+        </div>
+        <div id="potential" class="input-field blue-field rich-text-field">
+            <span class="field-label">Потенціал: </span><div class="user-input" contenteditable="true" data-placeholder="..."></div>
+        </div>
+
+        <!-- Right Side -->
+        <!-- New Headers -->
+        <div id="header-subdivision" class="right-column-header">Підрозділ</div>
+        <div id="header-category" class="right-column-header">Категорія</div>
+        <div id="header-type" class="right-column-header">Тип</div>
+        <div id="header-defense" class="right-column-header">Оборона</div>
+        <div id="header-score" class="right-column-header">Бал</div>
+        <div id="header-project-title" class="right-column-header">Назва проєкту:</div>
+        <div id="header-project-leader" class="right-column-header">Керівник проєкту:</div>
+        
+        <!-- Input Fields -->
+        <input type="text" id="subdivision" class="input-field white-field" placeholder="Підрозділ">
+        <select id="category" class="input-field white-field">
+            <option value="фунд.">фунд.</option>
+            <option value="прикл.">прикл.</option>
+        </select>
+        <select id="type" class="input-field white-field">
+            <option value="експ.">експ.</option>
+            <option value="теор.">теор.</option>
+        </select>
+        <select id="defense" class="input-field white-field">
+            <option value="так">так</option>
+            <option value="ні">ні</option>
+        </select>
+        <input type="text" id="score" class="input-field white-field" placeholder="100,00" maxlength="6">
+        
+        <textarea id="project-title" class="input-field white-field" maxlength="235" placeholder="Назва проєкту... (max 235)"></textarea>
+        <input type="text" id="project-leader" class="input-field white-field" maxlength="45" placeholder="Керівник проєкту... (max 45)">
+        <textarea id="priority-direction" class="input-field white-field" maxlength="95" placeholder="Пріоритетний напрям... (max 95)"></textarea>
+        <textarea id="contest-direction" class="input-field white-field" maxlength="95" placeholder="Тематичний напрям... (max 95)"></textarea>
+        
+        <span id="date-from-text">від</span>
+        <input type="date" id="start-date" class="input-field white-field" min="2000-01-01" max="2099-12-31">
+        <span id="date-to-text">до</span>
+        <input type="date" id="end-date" class="input-field white-field" min="2000-01-01" max="2099-12-31">
+        
+        <input type="text" id="funding-amount" class="input-field white-field" placeholder="99...9,99" maxlength="18"> <!-- Maxlength includes spaces -->
+        <span id="funding-currency-text">тис. грн.</span>
+
+        <div id="core-team" class="input-field white-field rich-text-field">
+            <span class="field-label">Основний склад: </span><div class="user-input" contenteditable="true" data-placeholder="(приклад: П.І.Б. ..., 80) - кожен з нового рядка"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Character Limit Logic ---
+            const maxLength = 440;
+            const editableFields = document.querySelectorAll('.rich-text-field .user-input');
+
+            editableFields.forEach(field => {
+                field.addEventListener('input', () => {
+                    if (field.innerText.length > maxLength) {
+                        field.innerText = field.innerText.substring(0, maxLength);
+                        
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(field);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                });
+
+                // --- Paste as Plain Text Logic ---
+                field.addEventListener('paste', (event) => {
+                    event.preventDefault();
+                    let text = (event.clipboardData || window.clipboardData).getData('text');
+                    text = text.replace(/(\r\n|\n|\r)/gm, " ");
+                    document.execCommand('insertText', false, text);
+                });
+            });
+
+            // --- Focus Logic: Make the entire container clickable ---
+            const fieldContainers = document.querySelectorAll('.rich-text-field');
+            fieldContainers.forEach(container => {
+                container.addEventListener('click', (event) => {
+                    if (window.getSelection().toString()) {
+                        return;
+                    }
+                    const userInput = container.querySelector('.user-input');
+                    if (userInput && document.activeElement !== userInput) {
+                        userInput.focus();
+                        const selection = window.getSelection();
+                        const range = document.createRange();
+                        range.selectNodeContents(userInput);
+                        range.collapse(false);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                });
+            });
+
+            // --- Date Validation for Manual Input ---
+            const handleDateValidation = (event) => {
+                const input = event.target;
+                const value = input.value;
+
+                if (value) { // Only validate if there's a date string
+                    const minDate = new Date(input.min);
+                    const maxDate = new Date(input.max);
+                    const selectedDate = new Date(value);
+
+                    // Add one day to maxDate to correctly compare dates without time
+                    maxDate.setDate(maxDate.getDate() + 1);
+
+                    if (selectedDate < minDate || selectedDate >= maxDate) {
+                        alert("Будь ласка, введіть дату між 01.01.2000 та 31.12.2099.");
+                        input.value = ""; // Clear the invalid input
+                    }
+                }
+            };
+            
+            // Validate when the user leaves the input field
+            document.getElementById('start-date').addEventListener('blur', handleDateValidation);
+            document.getElementById('end-date').addEventListener('blur', handleDateValidation);
+
+            // --- Funding Amount Validation and Formatting ---
+            const fundingInput = document.getElementById('funding-amount');
+            fundingInput.addEventListener('input', (event) => {
+                const input = event.target;
+                const originalValue = input.value;
+                const cursorStart = input.selectionStart;
+
+                // 1. Remove existing spaces and non-digit characters (except comma) to get a clean value
+                let value = originalValue.replace(/\s/g, '').replace(/[^\d,]/g, '');
+
+                // 2. Ensure only the first comma is kept and split the value
+                const parts = value.split(',');
+                let integerPart = parts.shift();
+                let decimalPart = parts.length > 0 ? parts.join('') : null;
+
+                // 3. Enforce length constraints on the raw digits
+                integerPart = integerPart.substring(0, 12);
+                if (decimalPart !== null) {
+                    decimalPart = decimalPart.substring(0, 2);
+                }
+
+                // 4. Format the integer part with spaces for thousands separation
+                const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+                // 5. Reconstruct the final, formatted value
+                let finalValue;
+                if (decimalPart !== null) {
+                    finalValue = formattedIntegerPart + ',' + decimalPart;
+                } else if (value.includes(',')) {
+                    finalValue = formattedIntegerPart + ',';
+                } else {
+                    finalValue = formattedIntegerPart;
+                }
+                
+                // 6. Update the input field with the formatted value
+                input.value = finalValue;
+
+                // 7. Adjust the cursor position to account for added/removed spaces
+                const lengthDifference = finalValue.length - originalValue.length;
+                const newCursorPosition = cursorStart + lengthDifference;
+                
+                if (document.activeElement === input) { // Avoid error if not focused
+                    input.setSelectionRange(newCursorPosition, newCursorPosition);
+                }
+            });
+
+            // --- Score Validation and Formatting ---
+            const scoreInput = document.getElementById('score');
+            scoreInput.addEventListener('input', (event) => {
+                const input = event.target;
+                let value = input.value;
+
+                // 1. Clean the input to allow only digits and one comma
+                value = value.replace(/[^\d,]/g, '');
+                const parts = value.split(',');
+                if (parts.length > 2) {
+                    value = parts[0] + ',' + parts.slice(1).join('');
+                }
+
+                // 2. Check if the numeric value exceeds 100
+                const numericValue = parseFloat(value.replace(',', '.')) || 0;
+                if (numericValue > 100) {
+                    value = '100,00';
+                }
+
+                // 3. Re-split and format the potentially capped value
+                const finalParts = value.split(',');
+                let integerPart = finalParts[0];
+                let decimalPart = finalParts.length > 1 ? finalParts[1] : null;
+
+                // 4. Enforce length constraint on the decimal part
+                if (decimalPart !== null) {
+                    decimalPart = decimalPart.substring(0, 2);
+                }
+
+                // 5. Reconstruct the final, formatted value
+                let finalValue;
+                if (decimalPart !== null) {
+                    finalValue = integerPart + ',' + decimalPart;
+                } else if (value.includes(',')) {
+                    finalValue = integerPart + ',';
+                } else {
+                    finalValue = integerPart;
+                }
+                
+                // 6. Update the input field with the formatted value
+                input.value = finalValue;
+            });
+        });
+
+        // Set up jsPDF and the generate button
+        const { jsPDF } = window.jspdf;
+        const generatePdfBtn = document.getElementById('generate-pdf-btn');
+        const pdfContainer = document.getElementById('pdf-container');
+
+        generatePdfBtn.addEventListener('click', () => {
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+
+            const originalStartDateValue = startDateInput.value;
+            const originalEndDateValue = endDateInput.value;
+            
+            if (originalStartDateValue) {
+                const [year, month, day] = originalStartDateValue.split('-');
+                startDateInput.type = 'text';
+                startDateInput.value = `${day}.${month}.${year}`;
+            }
+
+            if (originalEndDateValue) {
+                const [year, month, day] = originalEndDateValue.split('-');
+                endDateInput.type = 'text';
+                endDateInput.value = `${day}.${month}.${year}`;
+            }
+
+            pdfContainer.classList.add('no-print');
+        
+            html2canvas(pdfContainer, {
+                scale: 3,
+                useCORS: true,
+                logging: true,
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save("проєктна-пропозиція.pdf");
+            }).catch(err => {
+                console.error("Помилка при генерації PDF:", err);
+            }).finally(() => {
+                if (originalStartDateValue) {
+                    startDateInput.type = 'date';
+                    startDateInput.value = originalStartDateValue;
+                }
+                 if (originalEndDateValue) {
+                    endDateInput.type = 'date';
+                    endDateInput.value = originalEndDateValue;
+                }
+                pdfContainer.classList.remove('no-print');
+            });
+        });
+    </script>
+</body>
+</html>
