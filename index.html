@@ -124,9 +124,9 @@
             cursor: text;
         }
 
-        /* --- Input Field Positioning (FINAL LEFT COLUMN ADJUSTMENT) --- */
+        /* --- Input Field Positioning --- */
         
-        /* Left Column (Blue Background) */
+        /* Left Column */
         #meta, #indicators, #impact, #potential {
             padding: 5px 8px; 
             background-color: #cfe2f3;
@@ -138,7 +138,7 @@
         #impact { top: 51.1%; left: 4.6%; width: 42.0%; height: 18.4%; }
         #potential { top: 69.9%; left: 4.6%; width: 42.0%; height: 18.4%; }
 
-        /* Right Column (White Background) */
+        /* Right Column */
         
         .right-column-header {
             position: absolute;
@@ -155,11 +155,11 @@
         #header-score { top: 12.8%; left: 87.7%; }
         #header-project-title { top: 19.5%; left: 47.0%; }
         #header-project-leader { top: 31.4%; left: 47.0%; }
-        #header-priority-direction { top: 37.2%; left: 47.0%; }
-        #header-contest-direction { top: 45.5%; left: 47.0%; }
-        
-        /* --- NEW HEADER ADDED --- */
-        #header-funding { top: 64.5%; left: 47.0%; }
+        #header-priority-direction { top: 38.2%; left: 47.0%; }
+        #header-contest-direction { top: 47.3%; left: 47.0%; }
+        /* --- NEW HEADERS ADDED --- */
+        #header-dates { top: 56.5%; left: 47.0%; }
+        #header-funding { top: 63.4%; left: 47.0%; }
 
 
         #subdivision { top: 16%; left: 47.0%; width: 10.8%; height: 4%; }
@@ -176,14 +176,14 @@
 
         #project-title { top: 22.7%; left: 47.0%; width: 49.3%; height: 9.2%; }
         #project-leader { top: 34.7%; left: 47.0%; width: 49.3%; height: 3%; }
-        #priority-direction { top: 40.7%; left: 47.0%; width: 49.3%; height: 5.8%; }
-        #contest-direction { top: 48.7%; left: 47.0%; width: 49.3%; height: 5.8%; }
+        #priority-direction { top: 41.7%; left: 47.0%; width: 49.3%; height: 5.8%; }
+        #contest-direction { top: 50.7%; left: 47.0%; width: 49.3%; height: 5.8%; }
 
         #date-from-text, #date-to-text {
             position: absolute;
             font-family: var(--montserrat-font);
             font-size: var(--white-fields-font-size);
-            top: 57.5%; 
+            top: 61.5%;
             height: 3%;
             display: flex;
             align-items: center;
@@ -191,12 +191,21 @@
         #date-from-text { left: 47.0%; }
         #date-to-text { left: 57.5%; }
         
-        #start-date { top: 57.5%; left: 48.8%; width: 8.5%; height: 3%; }
-        #end-date { top: 57.5%; left: 59.0%; width: 8.5%; height: 3%; }
+        #start-date { 
+            top: 61.5%;
+            left: 48.8%; 
+            width: 8.5%; 
+            height: 3%; 
+        }
+        #end-date { 
+            top: 61.5%;
+            left: 59.0%; 
+            width: 8.5%; 
+            height: 3%; 
+        }
         
-        /* --- POSITION EDITED FOR HEADER --- */
         #funding-amount {
-            top: 67.5%; 
+            top: 66.7%; 
             left: 47.0%;
             width: 12%;
             height: 3%;
@@ -263,6 +272,7 @@
         <div id="header-priority-direction" class="right-column-header">Пріоритетний напрям розвитку науки і техніки:</div>
         <div id="header-contest-direction" class="right-column-header">Тематичний напрям конкурсу:</div>
         <!-- HEADER ADDED AS REQUESTED -->
+        <div id="header-dates" class="right-column-header">Пропоновані терміни виконання:</div>
         <div id="header-funding" class="right-column-header">Орієнтовний обсяг фінансування:</div>
 
         <input type="text" id="subdivision" class="input-field white-field" placeholder="Підрозділ">
