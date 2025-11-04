@@ -179,7 +179,8 @@
         #header-defense { top: 12.8%; left: 78.4%; }
         #header-score { top: 12.8%; left: 87.7%; }
         #header-project-title { top: 20.1%; left: 47.0%; }
-        #header-project-leader { top: 32.7%; left: 47.0%; } /* Raised */
+        #header-project-leader { top: 32.7%; left: 47.0%; }
+        #header-priority-direction { top: 38.8%; left: 47.0%; } /* Adjusted position */
 
 
         /* --- ADJUSTED POSITIONS FOR RIGHT COLUMN FIELDS --- */
@@ -240,14 +241,14 @@
         }
         
         #priority-direction {
-            top: 40.2%;
+            top: 42.2%; /* Moved lower */
             left: 47.0%;
             width: 49.3%;
             height: 5.8%;
         }
         
         #contest-direction {
-            top: 47.5%;
+            top: 51%; /* Moved lower */
             left: 47.0%;
             width: 49.3%;
             height: 5.8%;
@@ -257,7 +258,7 @@
             position: absolute;
             font-family: var(--montserrat-font);
             font-size: var(--white-fields-font-size);
-            top: 55.5%;
+            top: 57.5%; /* Moved lower */
             height: 3%;
             display: flex;
             align-items: center;
@@ -272,21 +273,21 @@
         }
         
         #start-date {
-            top: 55.5%;
+            top: 57.5%; /* Moved lower */
             left: 48.8%;
             width: 8.5%;  
             height: 3%;
         }
         
         #end-date {
-            top: 55.5%;
+            top: 57.5%; /* Moved lower */
             left: 59.0%;
             width: 8.5%;  
             height: 3%;
         }
 
         #funding-amount {
-            top: 60.5%;
+            top: 62.5%; /* Moved lower */
             left: 47.0%;
             width: 12%;
             height: 3%;
@@ -296,7 +297,7 @@
             position: absolute;
             font-family: var(--montserrat-font);
             font-size: var(--white-fields-font-size);
-            top: 60.5%;
+            top: 62.5%; /* Moved lower */
             left: 59.2%;
             height: 3%;
             display: flex;
@@ -304,7 +305,7 @@
         }
 
         #core-team {
-            top: 66.3%;
+            top: 66.3%; /* Restored original position */
             left: 47.0%;
             width: 49.3%;
             height: 22.0%;
@@ -370,6 +371,8 @@
         <div id="header-score" class="right-column-header">Бал</div>
         <div id="header-project-title" class="right-column-header">Назва проєкту:</div>
         <div id="header-project-leader" class="right-column-header">Керівник проєкту:</div>
+        <div id="header-priority-direction" class="right-column-header">Пріоритетний напрям розвитку науки і техніки:</div>
+
         
         <!-- Input Fields -->
         <input type="text" id="subdivision" class="input-field white-field" placeholder="Підрозділ">
