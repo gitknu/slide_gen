@@ -81,7 +81,7 @@
             line-height: 1.1; 
         }
         
-        .input-field:focus-within, textarea:focus {
+        .input-field:focus-within, textarea:focus, input:focus {
             outline: none;
             border: 1px solid #007bff;
         }
@@ -266,7 +266,8 @@
         <input type="text" id="score" class="input-field white-field" placeholder="100,00" maxlength="6">
         
         <textarea id="project-title" class="input-field white-field" placeholder="Назва проєкту..."></textarea>
-        <input type="text" id="project-leader" class="input-field white-field" maxlength="45" placeholder="Керівник проєкту... (max 45)">
+        <!-- REMOVED MAXLENGTH from project-leader -->
+        <input type="text" id="project-leader" class="input-field white-field" placeholder="Керівник проєкту...">
         <textarea id="priority-direction" class="input-field white-field" placeholder="Пріоритетний напрям..."></textarea>
         <textarea id="contest-direction" class="input-field white-field" placeholder="Тематичний напрям..."></textarea>
         
@@ -291,25 +292,29 @@
             const handleKeyDown = (event) => {
                 const element = event.target;
                 const isContentEditable = element.isContentEditable;
-                
+                // **THE FIX**: Differentiate between single-line and multi-line elements.
+                const isSingleLineInput = element.tagName === 'INPUT';
+
                 const isShortcut = event.ctrlKey || event.metaKey;
                 const isControlKey = event.key.length > 1;
                 if (isShortcut || (isControlKey && event.key !== 'Enter')) {
                     return;
                 }
                 
+                // Single-line inputs don't use the Enter key for new lines.
+                if (isSingleLineInput && event.key === 'Enter') return;
+                
                 const charToInsert = (event.key === 'Enter') ? '\n' : event.key;
                 if (charToInsert.length > 1 && charToInsert !== '\n') return;
 
-                // **THE FIX**: Identify the correct container to measure against.
-                // For contenteditable fields, it's the parent element. For textareas, it's the element itself.
                 const container = isContentEditable ? element.parentElement : element;
-                
                 const clone = container.cloneNode(true);
                 const containerStyle = window.getComputedStyle(container);
                 Object.assign(clone.style, {
                     position: 'absolute', visibility: 'hidden', height: 'auto',
-                    width: containerStyle.width, left: '-9999px', top: '-9999px',
+                    width: isSingleLineInput ? 'auto' : containerStyle.width, // Let width grow for single-line inputs
+                    whiteSpace: isSingleLineInput ? 'pre' : 'normal', // Prevent wrapping for single-line inputs
+                    left: '-9999px', top: '-9999px',
                 });
 
                 const elementInClone = isContentEditable ? clone.querySelector('.user-input') : clone;
@@ -324,7 +329,15 @@
                 elementInClone[isContentEditable ? 'innerText' : 'value'] = newContent;
 
                 document.body.appendChild(clone);
-                const willOverflow = clone.scrollHeight > container.clientHeight;
+                
+                let willOverflow;
+                if (isSingleLineInput) {
+                    // Check horizontal overflow for single-line inputs
+                    willOverflow = elementInClone.scrollWidth > container.clientWidth;
+                } else {
+                    // Check vertical overflow for multi-line fields
+                    willOverflow = clone.scrollHeight > container.clientHeight;
+                }
                 document.body.removeChild(clone);
 
                 if (willOverflow) {
@@ -336,24 +349,26 @@
                 event.preventDefault();
                 const element = event.target;
                 const isContentEditable = element.isContentEditable;
+                const isSingleLineInput = element.tagName === 'INPUT';
                 const container = isContentEditable ? element.parentElement : element;
                 const valueProp = isContentEditable ? 'innerText' : 'value';
 
                 const originalContent = element[valueProp];
-                const textToPaste = (event.clipboardData || window.clipboardData).getData('text').replace(/(\r\n|\n|\r)/gm, " ");
+                const textToPaste = (event.clipboardData || window.clipboardData).getData('text').replace(/(\r\n|\n|\r)/gm, isSingleLineInput ? '' : ' ');
 
                 const clone = container.cloneNode(true);
                 const containerStyle = window.getComputedStyle(container);
                 Object.assign(clone.style, {
                     position: 'absolute', visibility: 'hidden', height: 'auto',
-                    width: containerStyle.width, left: '-9999px', top: '-9999px',
+                    width: isSingleLineInput ? 'auto' : containerStyle.width,
+                    whiteSpace: isSingleLineInput ? 'pre' : 'normal',
+                    left: '-9999px', top: '-9999px',
                 });
 
                 const elementInClone = isContentEditable ? clone.querySelector('.user-input') : clone;
                 
                 let newContent;
                 if (isContentEditable) {
-                    // Simplified for contenteditable: append pasted text for measurement
                     newContent = originalContent + textToPaste;
                 } else {
                     const { selectionStart, selectionEnd } = element;
@@ -362,23 +377,27 @@
                 elementInClone[valueProp] = newContent;
 
                 document.body.appendChild(clone);
-                const willOverflow = clone.scrollHeight > container.clientHeight;
+                let willOverflow;
+                if (isSingleLineInput) {
+                    willOverflow = elementInClone.scrollWidth > container.clientWidth;
+                } else {
+                    willOverflow = clone.scrollHeight > container.clientHeight;
+                }
                 document.body.removeChild(clone);
                 
                 if (willOverflow) {
                     alert("Вставлений текст занадто великий для цього поля.");
                 } else {
-                    // If it doesn't overflow, perform the actual paste
                     if (isContentEditable) {
                         document.execCommand('insertText', false, textToPaste);
                     } else {
-                        element.value = newContent; // Assign the calculated new content
+                        element.value = newContent;
                     }
                 }
             };
 
-            // Apply the refined logic to all specified text fields
-            document.querySelectorAll('textarea.input-field, .user-input[contenteditable="true"]').forEach(field => {
+            // Apply the refined logic to all text fields that need it
+            document.querySelectorAll('textarea.input-field, .user-input[contenteditable="true"], input[type="text"].input-field:not(#score):not(#funding-amount)').forEach(field => {
                 field.addEventListener('keydown', handleKeyDown);
                 field.addEventListener('paste', handlePaste);
             });
