@@ -286,127 +286,97 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
-            // --- CORRECTED INPUT RESTRICTION LOGIC ---
+            const alertTimers = new Map();
 
-            const handleKeyDown = (event) => {
-                const element = event.target;
-                const isContentEditable = element.isContentEditable;
-                const isSingleLineInput = element.tagName === 'INPUT';
-
-                const isShortcut = event.ctrlKey || event.metaKey;
-                const isControlKey = event.key.length > 1;
-                if (isShortcut || (isControlKey && event.key !== 'Enter')) return;
-                if (isSingleLineInput && event.key === 'Enter') return;
-                
-                const charToInsert = (event.key === 'Enter') ? '\n' : event.key;
-                if (charToInsert.length > 1 && charToInsert !== '\n') return;
-
-                const container = isContentEditable ? element.parentElement : element;
-                let newContent;
-
-                if (isContentEditable) {
-                    newContent = element.innerText + charToInsert;
-                } else {
-                    const { selectionStart, selectionEnd, value } = element;
-                    newContent = value.substring(0, selectionStart) + charToInsert + value.substring(selectionEnd);
-                }
-                
-                let willOverflow;
-                if (isSingleLineInput) {
-                    // **THE FIX**: Use a more robust span-based measurement for single-line inputs
-                    const style = window.getComputedStyle(element);
-                    const tempSpan = document.createElement('span');
-                    Object.assign(tempSpan.style, {
-                        position: 'absolute', visibility: 'hidden', whiteSpace: 'pre',
-                        font: style.font, letterSpacing: style.letterSpacing
-                    });
-                    tempSpan.innerText = newContent;
-                    document.body.appendChild(tempSpan);
-                    const textWidth = tempSpan.getBoundingClientRect().width;
-                    document.body.removeChild(tempSpan);
-                    const availableWidth = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-                    willOverflow = textWidth > availableWidth;
-                } else {
-                    const clone = container.cloneNode(true);
-                    const containerStyle = window.getComputedStyle(container);
-                    Object.assign(clone.style, {
-                        position: 'absolute', visibility: 'hidden', height: 'auto',
-                        width: containerStyle.width, left: '-9999px', top: '-9999px',
-                    });
-                    const elementInClone = isContentEditable ? clone.querySelector('.user-input') : clone;
-                    elementInClone[isContentEditable ? 'innerText' : 'value'] = newContent;
-                    document.body.appendChild(clone);
-                    willOverflow = clone.scrollHeight > container.clientHeight;
-                    document.body.removeChild(clone);
-                }
-
-                if (willOverflow) {
-                    event.preventDefault();
-                }
-            };
-            
-            // Paste handler uses the same robust logic
-            const handlePaste = (event) => {
-                event.preventDefault();
+            // --- UNIFIED INPUT HANDLING AND CROPPING LOGIC ---
+            const handleInput = (event) => {
                 const element = event.target;
                 const isContentEditable = element.isContentEditable;
                 const isSingleLineInput = element.tagName === 'INPUT';
                 const container = isContentEditable ? element.parentElement : element;
                 const valueProp = isContentEditable ? 'innerText' : 'value';
 
-                const originalContent = element[valueProp];
-                const textToPaste = (event.clipboardData || window.clipboardData).getData('text').replace(/(\r\n|\n|\r)/gm, isSingleLineInput ? '' : ' ');
-                
-                let newContent;
-                if (isContentEditable) {
-                    newContent = originalContent + textToPaste;
-                } else {
-                    const { selectionStart, selectionEnd } = element;
-                    newContent = originalContent.substring(0, selectionStart) + textToPaste + originalContent.substring(selectionEnd);
-                }
+                // Check for overflow
+                const style = window.getComputedStyle(container);
+                const isHorizontallyOverflown = isSingleLineInput && (element.scrollWidth > element.clientWidth);
+                const isVerticallyOverflown = !isSingleLineInput && (container.scrollHeight > container.clientHeight);
 
-                let willOverflow;
-                if (isSingleLineInput) {
-                    const style = window.getComputedStyle(element);
-                    const tempSpan = document.createElement('span');
-                    Object.assign(tempSpan.style, {
-                        position: 'absolute', visibility: 'hidden', whiteSpace: 'pre',
-                        font: style.font, letterSpacing: style.letterSpacing
-                    });
-                    tempSpan.innerText = newContent;
-                    document.body.appendChild(tempSpan);
-                    const textWidth = tempSpan.getBoundingClientRect().width;
-                    document.body.removeChild(tempSpan);
-                    const availableWidth = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-                    willOverflow = textWidth > availableWidth;
-                } else {
-                    const clone = container.cloneNode(true);
-                    const style = window.getComputedStyle(container);
-                    Object.assign(clone.style, {
-                        position: 'absolute', visibility: 'hidden', height: 'auto',
-                        width: style.width, left: '-9999px', top: '-9999px',
-                    });
-                    const elementInClone = isContentEditable ? clone.querySelector('.user-input') : clone;
-                    elementInClone[valueProp] = newContent;
-                    document.body.appendChild(clone);
-                    willOverflow = clone.scrollHeight > container.clientHeight;
-                    document.body.removeChild(clone);
-                }
+                if (isHorizontallyOverflown || isVerticallyOverflown) {
+                    let text = element[valueProp];
+                    
+                    if (isSingleLineInput) {
+                        const inputStyle = window.getComputedStyle(element);
+                        const availableWidth = element.clientWidth - parseFloat(inputStyle.paddingLeft) - parseFloat(inputStyle.paddingRight);
+                        const tempSpan = document.createElement('span');
+                        Object.assign(tempSpan.style, {
+                            position: 'absolute', visibility: 'hidden', whiteSpace: 'pre',
+                            font: inputStyle.font, letterSpacing: inputStyle.letterSpacing
+                        });
+                        document.body.appendChild(tempSpan);
+                        
+                        // Trim characters from the end until it fits
+                        while (text.length > 0) {
+                            tempSpan.innerText = text;
+                            if (tempSpan.getBoundingClientRect().width <= availableWidth) break;
+                            text = text.slice(0, -1);
+                        }
+                        document.body.removeChild(tempSpan);
+                    } else { // Multi-line fields
+                         // Trim characters while the container overflows
+                         const tempClone = container.cloneNode(true);
+                         Object.assign(tempClone.style, {
+                             position: 'absolute', visibility: 'hidden', height: 'auto',
+                             width: style.width, left: '-9999px', top: '-9999px'
+                         });
+                         const innerElement = isContentEditable ? tempClone.querySelector('.user-input') : tempClone;
+                         document.body.appendChild(tempClone);
 
-                if (willOverflow) {
-                    alert("Вставлений текст занадто великий для цього поля.");
-                } else {
-                    if (isContentEditable) {
-                        document.execCommand('insertText', false, textToPaste);
-                    } else {
-                        element.value = newContent;
+                         while (text.length > 0) {
+                             innerElement[valueProp] = text;
+                             if (tempClone.scrollHeight <= container.clientHeight) break;
+                             text = text.slice(0, -1);
+                         }
+                         document.body.removeChild(tempClone);
+                    }
+                    
+                    element[valueProp] = text;
+
+                    // Debounce the alert
+                    clearTimeout(alertTimers.get(element));
+                    const timer = setTimeout(() => {
+                        alert("Ваш текст було обрізано, оскільки він не вміщується в поле.");
+                        alertTimers.delete(element);
+                    }, 500);
+                    alertTimers.set(element, timer);
+
+                    // Move cursor to the end after cropping
+                    if(document.activeElement === element) {
+                        if(isContentEditable) {
+                            const range = document.createRange();
+                            const sel = window.getSelection();
+                            range.selectNodeContents(element);
+                            range.collapse(false);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
                     }
                 }
+            };
+            
+            // Sanitize paste events before they trigger the input handler
+            const handlePaste = (event) => {
+                event.preventDefault();
+                const element = event.target;
+                const isSingleLineInput = element.tagName === 'INPUT';
+                let textToPaste = (event.clipboardData || window.clipboardData).getData('text');
+                // For single line inputs, remove newlines. For others, replace them with a space.
+                textToPaste = textToPaste.replace(/(\r\n|\n|\r)/gm, isSingleLineInput ? '' : ' ');
+                document.execCommand('insertText', false, textToPaste);
             };
 
             // Apply logic to all text fields requiring restriction
             document.querySelectorAll('textarea.input-field, .user-input[contenteditable="true"], input[type="text"].input-field:not(#score):not(#funding-amount)').forEach(field => {
-                field.addEventListener('keydown', handleKeyDown);
+                field.addEventListener('input', handleInput);
                 field.addEventListener('paste', handlePaste);
             });
 
@@ -497,7 +467,7 @@
                 pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
                 pdf.save("проєктна-пропозиція.pdf");
             }).catch(err => {
-                console.error("Помилка при генерації PDF:", err);
+                console.error("Помилка при генерації PDF:", err.message);
             }).finally(() => {
                 if (originalStartDateValue) {
                     startDateInput.type = 'date';
