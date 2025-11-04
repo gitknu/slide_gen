@@ -505,9 +505,54 @@
             });
         });
 
-        // --- PDF Generation Logic (Unchanged) ---
+        // --- PDF Generation Logic ---
         const { jsPDF } = window.jspdf;
         document.getElementById('generate-pdf-btn').addEventListener('click', () => {
+
+            // --- 1. VALIDATION: Check if any field is empty ---
+            const fieldsToValidate = [
+                document.querySelector('#meta .user-input'),
+                document.querySelector('#indicators .user-input'),
+                document.querySelector('#impact .user-input'),
+                document.querySelector('#potential .user-input'),
+                document.querySelector('#core-team .user-input'),
+                document.getElementById('subdivision'),
+                document.getElementById('score'),
+                document.getElementById('project-title'),
+                document.getElementById('project-leader'),
+                document.getElementById('priority-direction'),
+                document.getElementById('contest-direction'),
+                document.getElementById('start-date'),
+                document.getElementById('end-date'),
+                document.getElementById('funding-amount')
+            ];
+
+            for (const field of fieldsToValidate) {
+                const value = (field.isContentEditable ? field.innerText : field.value).trim();
+                if (value === '') {
+                    alert('Помилка: будь ласка, заповніть усі поля перед генерацією PDF.');
+                    // Highlight the problematic field for the user
+                    const parentContainer = field.closest('.input-field');
+                    parentContainer.style.border = '2px solid red';
+                    setTimeout(() => { parentContainer.style.border = ''; }, 2500); // Reset after 2.5s
+                    return; // Stop the function
+                }
+            }
+
+            // --- 2. FILENAME GENERATION ---
+            const leaderName = document.getElementById('project-leader').value;
+            const projectName = document.getElementById('project-title').value;
+
+            const getFilenamePart = (text) => {
+                if (!text) return '';
+                return text.trim().split(/\s+/).slice(0, 3).join('-').replace(/[,.]/g, '');
+            };
+
+            const leaderPart = getFilenamePart(leaderName);
+            const projectPart = getFilenamePart(projectName);
+            let finalFilename = `${leaderPart}_${projectPart}.pdf`;
+            
+            // --- 3. PDF GENERATION PROCESS ---
             const startDateInput = document.getElementById('start-date');
             const endDateInput = document.getElementById('end-date');
             const originalStartDateValue = startDateInput.value;
@@ -531,7 +576,7 @@
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                 pdf.addImage(imgData, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight());
-                pdf.save("проєктна-пропозиція.pdf");
+                pdf.save(finalFilename);
             }).catch(err => {
                 console.error("Помилка при генерації PDF:", err.message);
             }).finally(() => {
