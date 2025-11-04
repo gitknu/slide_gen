@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
 
     <style>
@@ -291,60 +291,42 @@
             const handleKeyDown = (event) => {
                 const element = event.target;
                 const isContentEditable = element.isContentEditable;
-
-                // Allow shortcuts (Ctrl+A, etc.) and non-character keys (arrows, backspace, delete)
+                
                 const isShortcut = event.ctrlKey || event.metaKey;
-                // "Backspace", "ArrowLeft", etc. have a length > 1
                 const isControlKey = event.key.length > 1;
                 if (isShortcut || (isControlKey && event.key !== 'Enter')) {
-                    return; // Don't block these essential editing keys
+                    return;
                 }
-
-                // --- Predictive Check: Will the next keypress cause an overflow? ---
-                // We create an invisible clone to measure the outcome before it happens.
-                const clone = element.cloneNode(true);
-                // Copy current content exactly
-                if (isContentEditable) {
-                    clone.innerText = element.innerText;
-                } else {
-                    clone.value = element.value;
-                }
-
-                // Get computed style to make the clone's dimensions and font match perfectly
-                const style = window.getComputedStyle(element);
-                Object.assign(clone.style, {
-                    position: 'absolute',
-                    visibility: 'hidden',
-                    height: 'auto',       // Allow height to grow for accurate scrollHeight measurement
-                    width: style.width,   // Crucial: Use the exact computed width
-                    left: '-9999px',
-                    top: '-9999px',
-                });
                 
-                // The character to be added (handle the Enter key specifically)
-                let charToInsert = (event.key === 'Enter') ? '\n' : event.key;
-                
-                // For this check to be accurate, we only evaluate single characters
+                const charToInsert = (event.key === 'Enter') ? '\n' : event.key;
                 if (charToInsert.length > 1 && charToInsert !== '\n') return;
 
-                // Simulate how the browser would insert the character based on element type
+                // **THE FIX**: Identify the correct container to measure against.
+                // For contenteditable fields, it's the parent element. For textareas, it's the element itself.
+                const container = isContentEditable ? element.parentElement : element;
+                
+                const clone = container.cloneNode(true);
+                const containerStyle = window.getComputedStyle(container);
+                Object.assign(clone.style, {
+                    position: 'absolute', visibility: 'hidden', height: 'auto',
+                    width: containerStyle.width, left: '-9999px', top: '-9999px',
+                });
+
+                const elementInClone = isContentEditable ? clone.querySelector('.user-input') : clone;
+                
+                let newContent;
                 if (isContentEditable) {
-                    // For contenteditable, simulating selection is complex.
-                    // A robust simplification is to append the character to the current text for measurement.
-                    // This correctly predicts overflow at the end of the text.
-                    clone.innerText += charToInsert;
-                } else { // For <textarea>
+                    newContent = element.innerText + charToInsert;
+                } else {
                     const { selectionStart, selectionEnd, value } = element;
-                    // This correctly simulates replacing selected text or inserting at the cursor
-                    clone.value = value.substring(0, selectionStart) + charToInsert + value.substring(selectionEnd);
+                    newContent = value.substring(0, selectionStart) + charToInsert + value.substring(selectionEnd);
                 }
-                
+                elementInClone[isContentEditable ? 'innerText' : 'value'] = newContent;
+
                 document.body.appendChild(clone);
-                // Check if the clone's required height is greater than the original element's visible height
-                const willOverflow = clone.scrollHeight > element.clientHeight;
+                const willOverflow = clone.scrollHeight > container.clientHeight;
                 document.body.removeChild(clone);
-                
-                // If it will overflow, FORBID the input by preventing the keydown event
+
                 if (willOverflow) {
                     event.preventDefault();
                 }
@@ -354,29 +336,44 @@
                 event.preventDefault();
                 const element = event.target;
                 const isContentEditable = element.isContentEditable;
-                const originalContent = isContentEditable ? element.innerText : element.value;
-                // Sanitize pasted text: replace any newlines with spaces
+                const container = isContentEditable ? element.parentElement : element;
+                const valueProp = isContentEditable ? 'innerText' : 'value';
+
+                const originalContent = element[valueProp];
                 const textToPaste = (event.clipboardData || window.clipboardData).getData('text').replace(/(\r\n|\n|\r)/gm, " ");
 
-                // Temporarily insert the pasted text to measure it
-                if (isContentEditable) {
-                    document.execCommand('insertText', false, textToPaste);
-                } else {
-                    const { selectionStart, selectionEnd, value } = element;
-                    element.value = value.substring(0, selectionStart) + textToPaste + value.substring(selectionEnd);
-                }
-                
-                // Check if the pasted content caused an overflow
-                const hasOverflow = element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
+                const clone = container.cloneNode(true);
+                const containerStyle = window.getComputedStyle(container);
+                Object.assign(clone.style, {
+                    position: 'absolute', visibility: 'hidden', height: 'auto',
+                    width: containerStyle.width, left: '-9999px', top: '-9999px',
+                });
 
-                if (hasOverflow) {
-                    // If it overflows, revert to the original content and notify the user
-                    if (isContentEditable) {
-                        element.innerText = originalContent;
-                    } else {
-                        element.value = originalContent;
-                    }
+                const elementInClone = isContentEditable ? clone.querySelector('.user-input') : clone;
+                
+                let newContent;
+                if (isContentEditable) {
+                    // Simplified for contenteditable: append pasted text for measurement
+                    newContent = originalContent + textToPaste;
+                } else {
+                    const { selectionStart, selectionEnd } = element;
+                    newContent = originalContent.substring(0, selectionStart) + textToPaste + originalContent.substring(selectionEnd);
+                }
+                elementInClone[valueProp] = newContent;
+
+                document.body.appendChild(clone);
+                const willOverflow = clone.scrollHeight > container.clientHeight;
+                document.body.removeChild(clone);
+                
+                if (willOverflow) {
                     alert("Вставлений текст занадто великий для цього поля.");
+                } else {
+                    // If it doesn't overflow, perform the actual paste
+                    if (isContentEditable) {
+                        document.execCommand('insertText', false, textToPaste);
+                    } else {
+                        element.value = newContent; // Assign the calculated new content
+                    }
                 }
             };
 
